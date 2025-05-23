@@ -1,0 +1,7 @@
+# 项目依赖
+aiohttp
+PySocks
+dnspython
+requests
+socks
+netifaces
