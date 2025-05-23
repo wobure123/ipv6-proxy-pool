@@ -2,7 +2,7 @@
 
 ## 项目简介
 
-本项目是一个支持多出口 IPv6 的高性能代理池，支持 HTTP 和 SOCKS5 协议，适用于爬虫、测试、网络研究等多场景。每次代理请求可随机使用本机不同的全局 IPv6 地址作为出口，支持用户名/密码认证。
+本项目是一个支持多出口 IPv6 的高性能代理池，支持 HTTP 和 SOCKS5 协议.每次代理请求可随机使用本机不同的全局 IPv6 地址作为出口，支持用户名/密码认证。
 
 ---
 
@@ -14,7 +14,7 @@
 - **认证机制**：SOCKS5 支持用户名/密码认证
 - **DNS 策略**：优先解析 AAAA 记录，无则降级 A 记录
 - **高并发**：基于 asyncio 实现，支持大量并发连接
-- **日志简洁**：仅保留关键操作和异常日志
+
 
 ---
 
@@ -28,8 +28,6 @@ uv pip install -r requirements.txt
 pip install -r requirements.txt
 ```
 
-依赖主要包括：aiohttp、PySocks、dnspython、netifaces、requests、socks
-
 ---
 
 ## 启动方式
@@ -38,8 +36,6 @@ pip install -r requirements.txt
 
 ```bash
 python3 main.py --mode socks5 --port 43222 --socks5-user <用户名> --socks5-pass <密码>
-# 例如
-python3 main.py --mode socks5 --port 43222 --socks5-user ubuntu --socks5-pass wobure
 ```
 
 ### 启动 HTTP 代理
