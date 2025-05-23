@@ -104,10 +104,26 @@ class SOCKS5Server:
                         await writer.drain()
                 except Exception:
                     pass
+                try:
+                    writer.close()
+                    await writer.wait_closed()
+                except Exception:
+                    pass
             await asyncio.gather(
                 relay(reader, remote_writer),
                 relay(remote_reader, writer)
             )
+            # 确保所有writer都关闭
+            try:
+                remote_writer.close()
+                await remote_writer.wait_closed()
+            except Exception:
+                pass
+            try:
+                writer.close()
+                await writer.wait_closed()
+            except Exception:
+                pass
         except Exception as e:
             logging.error(f"[SOCKS5] 连接目标失败: {dest_addr}:{dest_port} 错误: {e}")
             writer.close()
