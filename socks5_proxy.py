@@ -2,6 +2,7 @@ import socket
 import struct
 import asyncio
 import random
+import logging
 from ipv6_pool import IPv6Pool
 from utils import resolve_host
 
@@ -12,6 +13,7 @@ class SOCKS5Server:
         self.ipv6_pool = ipv6_pool
         self.username = username
         self.password = password
+        logging.basicConfig(level=logging.INFO, format='[%(asctime)s] %(levelname)s %(message)s')
 
     async def handle_client(self, reader, writer):
         # 握手
@@ -40,7 +42,7 @@ class SOCKS5Server:
                 writer.write(b'\x01\x01')
                 await writer.drain()
                 writer.close()
-                print(f"[SOCKS5] 认证失败: 用户名={uname.decode()} 密码={passwd.decode()}")
+                logging.warning(f"[SOCKS5] 认证失败: 用户名={uname.decode()} 密码={passwd.decode()}")
                 return
             writer.write(b'\x01\x00')
             await writer.drain()
@@ -74,17 +76,17 @@ class SOCKS5Server:
         dest_port = int.from_bytes(await reader.read(2), 'big')
         ip, family = await resolve_host(dest_addr)
         if not ip:
-            print(f"[SOCKS5] DNS解析失败: {dest_addr}")
+            logging.error(f"[SOCKS5] DNS解析失败: {dest_addr}")
             writer.close()
             return
         # 选择出口
         if family == socket.AF_INET6:
             local_ipv6 = self.ipv6_pool.get_random()
             local_addr = (local_ipv6, 0, 0, 0)
-            print(f"[SOCKS5] 选择IPv6出口: {local_ipv6}")
+            logging.info(f"[SOCKS5] 选择IPv6出口: {local_ipv6}")
         else:
             local_addr = None
-            print(f"[SOCKS5] 选择IPv4出口")
+            logging.info(f"[SOCKS5] 选择IPv4出口")
         try:
             # 用asyncio.open_connection建立到目标的流连接
             remote_reader, remote_writer = await asyncio.open_connection(ip, dest_port, family=family, local_addr=local_addr)
@@ -92,7 +94,7 @@ class SOCKS5Server:
             writer.write(b'\x05\x00\x00\x01' + socket.inet_aton('0.0.0.0') + (0).to_bytes(2, 'big'))
             await writer.drain()
             # 转发
-            async def relay(reader, writer, tag):
+            async def relay(reader, writer):
                 try:
                     while True:
                         data = await reader.read(4096)
@@ -100,14 +102,14 @@ class SOCKS5Server:
                             break
                         writer.write(data)
                         await writer.drain()
-                except Exception as e:
+                except Exception:
                     pass
             await asyncio.gather(
-                relay(reader, remote_writer, '客户端->目标'),
-                relay(remote_reader, writer, '目标->客户端')
+                relay(reader, remote_writer),
+                relay(remote_reader, writer)
             )
         except Exception as e:
-            print(f"[SOCKS5] 连接目标失败: {dest_addr}:{dest_port} 错误: {e}")
+            logging.error(f"[SOCKS5] 连接目标失败: {dest_addr}:{dest_port} 错误: {e}")
             writer.close()
             return
 
